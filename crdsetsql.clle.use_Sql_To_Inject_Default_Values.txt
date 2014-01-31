@@ -1,0 +1,58 @@
+/* ----------------------------------------------------------------- */
+/* credit card - authorizenet set defaults                           */
+/* ----------------------------------------------------------------- */
+/* Program : CRDSETSQL                                               */
+/* Date    : September 1st 2013                                      */
+/* CRDFUNC: repopulate the CRDTABLE with default CRDVALUEs             */
+/* ----------------------------------------------------------------- */
+             PGM
+
+             DCL        VAR(&ERROR)    TYPE(*LGL) LEN(1)    vALUE('0')
+             DCL        VAR(&SQL)    TYPE(*CHAR) LEN(1024)
+
+             RUNSQL     SQL('delete from crdtable where CRDFUNC = +
+                          ''SERVER''') COMMIT(*NONE)
+             RUNSQL     SQL('delete from crdtable where CRDFUNC = +
+                          ''ACTION''') COMMIT(*NONE)
+             RUNSQL     SQL('delete from crdtable where CRDFUNC = +
+                          ''MERCHANT''') COMMIT(*NONE)
+             RUNSQL     SQL('delete from crdtable where CRDFUNC = +
+                          ''KEY''') COMMIT(*NONE)
+
+/* Create the default entries for the TEST environment */
+             CHGVAR     VAR(&SQL)    VALUE('INSERT INTO CRDTABLE (CRDTYPE,CRDFUNC,CRDVALUE) +
+                          Values(''TST'', ''SERVER'', +
+                          ''https://apitest.authorize.net/soap/v1/Service.asmx'')')
+             RUNSQL     SQL(&SQL) COMMIT(*NONE)
+
+             CHGVAR     VAR(&SQL) Value('INSERT INTO CRDTABLE (CRDTYPE,CRDFUNC,CRDVALUE) +
+                          Values(''TST'', ''ACTION'', ''https://api.authorize.net/soap/v1/'')')
+             RUNSQL     SQL(&SQL) COMMIT(*NONE)
+
+             CHGVAR     VAR(&SQL) Value('INSERT INTO CRDTABLE (CRDTYPE,CRDFUNC,CRDVALUE) +
+                          Values(''TST'', ''MERCHANT'', ''2cmv5tzBF427'')')
+             RUNSQL     SQL(&SQL) COMMIT(*NONE)
+
+             CHGVAR     VAR(&SQL) Value('INSERT INTO CRDTABLE (CRDTYPE,CRDFUNC,CRDVALUE) +
+                          Values(''TST'', ''KEY'', ''2B6M4vYEs3634gY8'')')
+             RUNSQL     SQL(&SQL) COMMIT(*NONE)
+
+/* Create the default entries for the PROD environment */
+             CHGVAR     VAR(&SQL) Value('INSERT INTO CRDTABLE (CRDTYPE,CRDFUNC,CRDVALUE) +
+                          Values(''PRD'', ''SERVER'', +
+                          ''https://apitest.authorize.net/soap/v1/Service.asmx'')')
+             RUNSQL     SQL(&SQL) COMMIT(*NONE)
+
+             CHGVAR     VAR(&SQL) Value('INSERT INTO CRDTABLE (CRDTYPE,CRDFUNC,CRDVALUE) +
+                          Values(''PRD'', ''ACTION'', ''https://api.authorize.net/soap/v1/'')')
+             RUNSQL     SQL(&SQL) COMMIT(*NONE)
+
+             CHGVAR     VAR(&SQL) Value('INSERT INTO CRDTABLE (CRDTYPE,CRDFUNC,CRDVALUE) +
+                          Values(''PRD'', ''MERCHANT'', ''NATLLOYDSDEV1'')')
+             RUNSQL     SQL(&SQL) COMMIT(*NONE)
+
+             CHGVAR     VAR(&SQL) Value('INSERT INTO CRDTABLE (CRDTYPE,CRDFUNC,CRDVALUE) +
+                          Values(''PRD'', ''KEY'', ''2CMV5TZBF427'')')
+             RUNSQL     SQL(&SQL) COMMIT(*NONE)
+
+ ENDPGM:     ENDPGM

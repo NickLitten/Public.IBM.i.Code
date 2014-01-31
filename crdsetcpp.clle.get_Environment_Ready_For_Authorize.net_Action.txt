@@ -1,0 +1,18 @@
+/* Create Credit Card Stuff and prevent values being lost (again) */
+
+             PGM
+
+             DCL        VAR(&LIBRARY) TYPE(*CHAR) LEN(10)
+
+             MONMSG     MSGID(CPF0000)
+             RTVOBJD    OBJ(*LIBL/CRDSETENV) OBJTYPE(*CMD) +
+                          RTNLIB(&LIBRARY)
+
+             ADDLIBLE   LIB(LIBHTTP) POSITION(*AFTER QTEMP)
+/* ADDLIBLE   LIB(XMLSERVER) */
+
+             CALLPRC    PRC(CRDSETSQL)
+
+             SNDPGMMSG  MSG('Ready to talk to Authorize.net')
+
+             ENDPGM

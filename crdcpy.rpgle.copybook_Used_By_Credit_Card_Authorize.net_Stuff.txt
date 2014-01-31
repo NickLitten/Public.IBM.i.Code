@@ -1,0 +1,295 @@
+      // -------------------------------------------------------------------
+      //
+      // COPYBOOK used by all CREDIT CARD modules
+      // This defines all common variables and prototypes
+      //
+      // -------------------------------------------------------------------
+      //
+      // Modification History
+      // 2013-12-16   NJL01  Created
+      //
+      // -------------------------------------------------------------------
+
+      /if defined(CRD_HSpec)
+      /if not defined(CRD_HSpec_LOADED)
+     H DFTACTGRP(*NO) BNDDIR('HTTPAPI')
+      /endif
+      /define CRD_HSpec_LOADED
+      /endif
+
+
+      //  -------------------------------------------------------------
+      //  -  Global variables                                         -
+      //  -------------------------------------------------------------
+      /if defined(CRD_Variables)
+      /if not defined(CRD_Variables_LOADED)
+
+     D                SDS
+     D PROC_NAME         *PROC
+     D PGM_STATUS        *STATUS
+     D PRV_STATUS             16     20S 0
+     D LINE_NUM               21     28
+     D ROUTINE           *ROUTINE
+     D PARMS             *PARMS
+     D EXCP_TYPE              40     42
+     D EXCP_NUM               43     46
+     D PGM_LIB                81     90
+     D EXCP_DATA              91    170
+     D EXCP_ID               171    174
+     D DATE                  191    198
+     D YEAR                  199    200S 0
+     D LAST_FILE             201    208
+     D FILE_INFO             209    243
+     D JOB_NAME              244    253
+     D USER                  254    263
+     D JOB_NUM               264    269S 0
+     D JOB_DATE              270    275S 0
+     D RUN_DATE              276    281S 0
+     D RUN_TIME              282    287S 0
+     D CRT_DATE              288    293
+     D CRT_TIME              294    299
+     D CPL_LEVEL             300    303
+     D SRC_FILE              304    313
+     D SRC_LIB               314    323
+     D SRC_MBR               324    333
+     D PROC_PGM              334    343
+     D PROC_MOD              344    353
+     D CURR_USER             358    367
+
+     D QCMDEXC         PR                  ExtPgm('QCMDEXC')
+     D   command                  32702a   const options(*varsize)
+     D   len                         15p 5 const
+     D   igc                          3a   const options(*nopass)
+
+     D SaveEmbed       PR
+     D   embfile                     50a   varying
+     D   depth                       10I 0 value
+     D   name                      1024A   varying const
+     D   path                     24576A   varying const
+     D   value                    32767A   varying const
+     D   attrs                         *   dim(32767)
+     D                                     const options(*varsize)
+
+     D Response_DS     ds                  qualified
+     D                                     based(Template)
+     D   XMLresult                   50a   varying
+     D   XMLcode                     50a   varying
+     D   XMLprofile                  50a   varying
+     D   XMLtrankey                  50a   varying
+     D   XMLtext                     90a   varying
+     D   XMLtoken                   256a   varying
+
+     D embedded        PR
+     D   AuthorizeNet                      likeds(Response_DS)
+     D   depth                       10I 0 value
+     D   name                      1024A   varying const
+     D   path                     24576A   varying const
+     D   value                    32767A   varying const
+     D   attrs                         *   dim(32767)
+     D                                     const options(*varsize)
+
+     D SOAP            s           2000A   varying
+     D rc              s             10I 0
+     D fd              s             10I 0
+     D soapfile        s             50a   varying
+     D embfile         s             50a   varying
+     D cmd             s            200A
+     D AuthorizeNet    ds                  likeds(Response_DS)
+     D wait            s              1A
+     d $QuoteMark      C                   x'7D'
+     d $BigVariable    S           5000a
+
+      // Global date variables
+     d                 DS
+     d TodaysDate                      D   DATFMT(*ISO) INZ(*JOB)
+     d  TodaysYear                    4    overlay(TodaysDate:1)
+     d  TodaysMth                     2    overlay(TodaysDate:6)
+     d  TodaysDay                     2    overlay(TodaysDate:9)
+     d                 DS
+     d WorkDateYMD                     D   DATFMT(*ISO) INZ(*JOB)
+     d  WorkYMDYear                   4    overlay(WorkDateYMD:1)
+     d  WorkYMDMth                    2    overlay(WorkDateYMD:6)
+     d  WorkYMDDay                    2    overlay(WorkDateYMD:9)
+     d                 DS
+     d WorkDateMDY                     D   DATFMT(*MDY) INZ(*JOB)
+     d  WorkMDYMth                    2    overlay(WorkDateMDY:1)
+     d  WorkMDYDay                    2    overlay(WorkDateMDY:3)
+     d  WorkMDYYear                   4    overlay(WorkDateMDY:5)
+
+     d TodaysDateMDY   S               D   DATFMT(*MDY) INZ(*JOB)
+     d TodaysDateUSA   S               D   DATFMT(*USA) INZ(*JOB)
+     d TodaysDateISO   S               D   DATFMT(*ISO) INZ(*JOB)
+
+     d                 DS
+     d TodaysTime                      T   TIMFMT(*HMS) INZ(*SYS)
+     d  Todayshour                    2    overlay(TodaysTime:1)
+     d  Todaysmin                     2    overlay(TodaysTime:4)
+     d  Todayssec                     2    overlay(TodaysTime:7)
+
+      //  ------------------------------------
+      // Softcoded Authorize.net SOAP attributes
+     d  $SoapProcess   s           2000a   varying
+     d  $SoapServer    s                   like($SoapProcess)
+     d  $SoapAction    s                   like($SoapProcess)
+     d  $MerchantID    s                   like($SoapProcess)
+     d  $MerchantKey   s                   like($SoapProcess)
+     d  $SoapActionFull...
+     d                 s                   like($SoapProcess)
+     d  $SoapPlaceholder...
+     d                 s                   like($SoapProcess)
+     d  $CustomerID...
+     d                 s                   like($SoapProcess)
+
+      //  ------------------------------------
+      // | Define *LDA for passing parms back |
+      //  ------------------------------------
+     d Lda             DS                  dtaara(*LDA)
+     d  $LDA                   1   1024a
+
+      /define CRD_Variables_LOADED
+      /endif
+      /endif
+
+
+
+
+      //  ---------------------------
+      //  -  Procedure Definitions  -
+      //  ---------------------------
+
+
+      /if defined(CRD_Procedure)
+      /if not defined(CRD_Procedure_LOADED)
+
+     D CRDAUTTST       PR                  ExtPgm('CRDAUTTST')
+     D   $ParmType                    3A   const
+
+     D CRDGETCPI       PR                  ExtPgm('CRDGETCPI')
+     D   $ParmType                    3A   const
+     D   $ParmEmail                 256A   const
+     D   $ReturnCODE                256A
+     D   $ReturnID                  256A
+
+     D CRDGETHPP       PR                  ExtPgm('CRDGETHPP')
+     D   $ParmType                    3A   const
+     D   $ParmEmail                 256A   const
+     D   $ReturnCODE                256A
+     D   $ReturnID                  256A
+
+     D CRDGETPRF       PR                  ExtPgm('CRDGETPRF')
+     D   $ParmType                    3A   const
+     D   $ParmEmail                 256A   const
+     D   $ReturnCODE                256A
+     D   $ReturnID                  256A
+
+     D CRDCRTPRF       PR                  ExtPgm('CRDCRTPRF')
+     D   $ParmType                    3A   const
+     D   $ParmEmail                 256A   const
+     D   $ReturnCODE                256A
+     D   $ReturnID                  256A
+
+      /define CRD_Procedure_LOADED
+      /endif
+      /endif
+
+
+
+
+      //  ----------------------------
+      //  -  Protottype Definitions  -
+      //  ----------------------------
+
+      /if defined(CRD_Prototype)
+      /if not defined(CRD_Prototype_LOADED)
+
+     P SaveEmbed       B
+     D SaveEmbed       PI
+     D   embfile                     50a   varying
+     D   depth                       10I 0 value
+     D   name                      1024A   varying const
+     D   path                     24576A   varying const
+     D   value                    32767A   varying const
+     D   attrs                         *   dim(32767)
+     D                                     const options(*varsize)
+
+     D writeConst      PR            10I 0 ExtProc('write')
+     D  fildes                       10i 0 value
+     D  buf                       65535A   const options(*varsize)
+     D  bytes                        10U 0 value
+
+     D xmlhdr          s             80a   varying
+     D fd              s             10i 0
+
+      /free
+           if (name <> '<AuthenticateTest            Result');
+             return;
+           endif;
+
+           // ------------------------------------------
+           //   create new stream file in IFS
+           //   tag it with CCSID 1208 (UTF-8)
+           // ------------------------------------------
+
+           unlink(embfile);
+           fd = open(embfile: O_CREAT+O_CCSID+O_WRONLY
+                            : S_IRUSR + S_IWUSR: 819);
+           callp close(fd);
+
+           // ------------------------------------------
+           //    Open stream file for appending data
+           //    and write embedded XML document to it
+           // ------------------------------------------
+
+           fd = open(embfile: O_WRONLY+O_TEXTDATA);
+
+           xmlhdr= '<?xml version="1.0" encoding="iso-8859-1"?>' + x'0d25';
+           writeConst(fd: xmlhdr: %len(xmlhdr));
+           writeConst(fd: value:  %len(value));
+
+           callp close(fd);
+      /end-free
+     P                 E
+
+
+     P embedded        B
+     D embedded        PI
+     D   AuthorizeNet                      likeds(Response_DS)
+     D   depth                       10I 0 value
+     D   name                      1024A   varying const
+     D   path                     24576A   varying const
+     D   value                    32767A   varying const
+     D   attrs                         *   dim(32767)
+     D                                     const options(*varsize)
+
+      /free
+         select;
+         when name = 'resultCode';
+            AuthorizeNet.XMLresult = %trimr(value);
+         when name = 'code';
+            AuthorizeNet.XMLcode  = %trimr(value);
+         when name = 'customerProfileId';
+            AuthorizeNet.XMLprofile = %trimr(value);
+         when name = 'transactionKey';
+            AuthorizeNet.XMLtrankey = %trimr(value);
+         when name = 'token';
+            AuthorizeNet.XMLtoken = %trimr(value);
+         when name = 'text';
+            AuthorizeNet.XMLtext = %trimr(value);
+         endsl;
+      /end-free
+     P                 E
+
+
+     P SetAuditValue   B
+     D SetAuditValue   PI
+
+      /free
+         AuditPgm = Proc_Name;
+         AuditDate = TodaysDate;
+         AuditTIME = TodaysTime;
+      /end-free
+     P                 E
+      /define CRD_Procedure_LOADED
+      /endif
+      /endif
+      // --- end of copybook ---

@@ -1,0 +1,320 @@
+      // ----------------------------------------------------------------------
+      // Name: CRDCRTPRF - <CreateCustomerProfile>
+      //
+      // Authorize.net Service detail is online at URL:
+      // https://apitest.authorize.net/soap/v1/Service.asmx?op=CreateCustomerProfile
+      //
+      // Author: Nick Litten on code branched from LIBHTTP (Scott Klement)
+      //
+      // Date Created: 12/03/2013
+      //
+      // Description : CREDIT CARD Project using Authorize.net
+      //               call Authorize.net web service Detailed above.
+      //
+      //       ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      // NOTE: Use dsplnk '/tmp/httpapi_debug.txt' to see results after calling
+      //       ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      //
+      //  For example:
+      //    CALL CRDCRTPRF PARM('???'    either 'TST' or 'PRD'
+      //                        'nick@projex.com'
+      //                        'policy')
+      //
+      //  Note:  This web service wraps an entire XML document
+      //         inside the "payload" of it's SOAP message.
+      //         So this program parses XML twice.  First it
+      //         parses the SOAP message to get the payload,
+      //         then it parses the payload to get the data.
+      //
+      //  Note: If DEBUGGING is defined (below) you'll see what
+      //         the XML response looks like at each step of the
+      //         process.
+      //
+      // ----------------------------------------------------------------------
+      // task     | change date | init  | description
+      // ----------------------------------------------------------------------
+      // 1000-0519| 2013-12-03  | NJL   | Created.
+      // 1000-0519| 2014-01-23  | NJL   | Add Softcoded SOAP from CRDTABLE
+      // ----------------------------------------------------------------------
+
+      /define CRD_HSpec
+      /include SRCWEB,CRDCPY
+     h copyright('NJL Version 1.1 Jan 2014')
+
+     fCRDTABLE  UF A E           K DISK    USROPN
+
+      // change the following to "/undefine" if you don't
+      // want to see debugging messages
+      /define DEBUGGING
+      /define NODSPF
+      /define ParseTheResults
+
+      /include libhttp/qrpglesrc,httpapi_h
+      /include libhttp/qrpglesrc,ifsio_h
+
+      /define CRD_Variables
+      /include SRCWEB,CRDCPY
+
+      /define CRD_Procedure
+      /include SRCWEB,CRDCPY
+
+     D CRDCRTPRF       PI
+     D   $ParmType                    3A   const
+     D   $ParmEmail                 256A   const
+     D   $ReturnCODE                256A
+     D   $ReturnID                  256A
+
+      // ----------------------------------------------------------------------
+      //                          M A I N L I N E
+      // ----------------------------------------------------------------------
+      /free
+
+        if (%parms < 1);
+           http_comp('Not enough Parms -- First must be TST or PRD');
+           return;
+        endif;
+
+        // Note:  http_debug(*ON/*OFF) can be used to turn debugging
+        //        on and off.  When debugging is turned on, diagnostic
+        //        info is written to an IFS file named
+        //        /tmp/httpapi_debug.txt
+      /if defined(DEBUGGING)
+         http_debug(*ON);
+      /endif
+
+        *inlr = *on;
+
+        // Set the variable that controls the Authorize.net Process to be SOAPED
+        $SoapProcess = 'CreateCustomerProfile';
+
+        $CustomerID = %trim($ParmEmail) ;
+
+        open CRDTABLE;
+
+        In LDA;
+        Clear $LDA;
+
+        // Note:  http_XmlStripCRLF(*ON/*OFF) controls whether or not
+        //        the XML parser removes CR and LF characters from the
+        //        Xml data that's passed to your 'Incoming' procedure.
+        http_XmlStripCRLF(*ON);
+
+        // ----------------------------------------------
+        //  Retrieve SOAP information from template file
+        // ----------------------------------------------
+        Chain ( $ParmType : 'SERVER' ) CRDTABLE;
+        If %Found(CRDTABLE);
+          $SoapServer = crdvalue;
+        else;
+           http_comp('Type value TYPE not found!');
+           return;
+        endif;
+
+        Chain ( $ParmType : 'ACTION' ) CRDTABLE;
+        If %Found(CRDTABLE);
+          $SoapAction = crdvalue;
+          $SoapActionFull = %trim($SoapAction) + $SoapProcess;
+        else;
+           http_comp('Type value ACTION not found!');
+           return;
+        endif;
+
+        Chain ( $ParmType : 'MERCHANT' ) CRDTABLE;
+        If %Found(CRDTABLE);
+          $MerchantID = crdvalue;
+        else;
+           http_comp('Type value MERCHANT not found!');
+           return;
+        endif;
+
+        Chain ( $ParmType : 'KEY' ) CRDTABLE;
+        If %Found(CRDTABLE);
+          $MerchantKey = crdvalue;
+        else;
+           http_comp('Type value KEY not found!');
+           return;
+        endif;
+
+
+        // ---------------------------------------------------------------
+        //  Create SOAP document to tell server
+        //    - to call the process ($SoapProcess)
+        //    - $SoapPlaceHolder contains the specific placeholder
+        //      data which is unique to each Soap Service
+        // ---------------------------------------------------------------
+
+        $SoapPlaceholder=
+         '<profile>+
+            <email>' + %trim($CustomerID) + '</email>+
+          </profile>';
+
+        // experimental code using '???' to prevent it running
+        If $ParmType = '???';
+          $SoapPlaceholder = %trim($SoapPlaceHolder) +
+           '<validationMode>testMode</validationMode>';
+        Endif;
+        If $ParmType = '???';
+          $SoapPlaceholder = %trim($SoapPlaceHolder) +
+           '<validationMode>liveMode</validationMode>';
+        Endif;
+
+
+        SOAP=
+         '<?xml version="1.0" encoding="utf-8"?>+
+          <soap:Envelope +
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" +
+          xmlns:xsd="http://www.w3.org/2001/XMLSchema" +
+          xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">+
+          <soap:Body>+
+          <' + %trim($SoapProcess) + ' +
+           xmlns="' + %trim($SoapAction) + '">+
+          <merchantAuthentication>+
+          <name>' + %trim($MerchantID) + '</name>+
+          <transactionKey>' + %trim($MerchantKey) + '</transactionKey>+
+          </merchantAuthentication>+
+          ' + %trim($SoapPlaceholder) + '+
+          </' + %trim($SoapProcess) + '>+
+          </soap:Body>+
+          </soap:Envelope>';
+
+
+        // ----------------------------------------------
+        //  Send request to server, and get response
+        // ----------------------------------------------
+
+          soapfile = http_tempfile();
+
+          rc = http_url_post( %trim($SoapServer)
+                            : %addr(SOAP)+2
+                            : %len(SOAP)
+                            : soapfile
+                            : HTTP_TIMEOUT
+                            : HTTP_USERAGENT
+                            : 'text/xml'
+                            : %trim($SoapActionFull)
+                               );
+
+          if (rc <> 1);
+             unlink(soapfile);
+             http_crash();
+          endif;
+
+
+        // ----------------------------------------------
+        //   The response from the server will be in
+        //   the IFS in a file with a unique name.
+        //   that IFS filename is in the "tempfile"
+        //   variable at this point.
+        //
+        //   For debugging purposes, display the
+        //   contents of that file, now.
+        // ----------------------------------------------
+      /if defined(DSPF)
+          dsply ('Press <ENTER> to see SOAP response') ' ' wait;
+          cmd = 'DSPF STMF(''' + soapfile + ''')';
+          QCMDEXC(cmd: %len(cmd));
+      /endif
+
+        // TOKEN value to *LDA as its way to big for playing with
+          $LDA = soapfile;
+          Out LDA;
+
+
+        // njl -  *IGNORE THIS EXTRA PARSING STEP*
+
+        // ----------------------------------------------
+        //  Parse the SOAP document (the one in soapfile)
+        //  Inside it will be another XML document that's
+        //  embedded within -- save that to a separate
+        //  file in the IFS.
+        // ----------------------------------------------
+        //  embfile = http_tempfile();
+        //  if (http_parse_xml_stmf( soapfile
+        //                         : HTTP_XML_CALC
+        //                         : *null
+        //                         : %paddr(SaveEmbed)
+        //                         : %addr(embfile) ) < 0);
+        //      callp close(fd);
+        //      unlink(soapfile);
+        //      unlink(embfile);
+        //      http_crash();
+        //  endif;
+        //  unlink(soapfile);
+
+        // njl - and just use the SOAPFILE value instead
+        embfile = %trimr(soapfile); // if it fails revert back
+
+        // ----------------------------------------------
+        //   For the sake of debugging, display the
+        //   contents of the embedded XML document
+        //   (Remove from production code)
+        // ----------------------------------------------
+
+      /if defined(DSPF)
+          dsply ('Press <ENTER> to see extracted XML') ' ' wait;
+          cmd = 'DSPF STMF(''' + embfile + ''')';
+          monitor;
+            QCMDEXC(cmd: %len(cmd));
+          on-error;
+          endmon;
+      /endif
+
+
+      /if defined(ParseTheResults)
+        // ----------------------------------------------
+        //    Parse the second XML document (the one
+        //    that was embedded)
+        // ----------------------------------------------
+          AuthorizeNet = *allx'00';
+          if (http_parse_xml_stmf( embfile
+                                 : HTTP_XML_CALC
+                                 : *null
+                                 : %paddr(Embedded)
+                                 : %addr(AuthorizeNet) ) < 0);
+              unlink(embfile);
+              http_crash();
+          endif;
+
+        // ----------------------------------------------
+        //   For the sake of demonstration, use DSPLY
+        //   to show the results on the screen (you
+        //   wouldn't do this in a real program.)
+        // ----------------------------------------------
+      /if defined(DEBUGGING)
+          http_comp('--- Reply from Web Service ---');
+          http_comp('<resultCode>  = ' + AuthorizeNet.XMLresult);
+          http_comp('<code>  = ' + AuthorizeNet.XMLcode);
+          http_comp('<customerProfileId>  = ' + AuthorizeNet.XMLprofile);
+          http_comp('<transactionKey> = ' + AuthorizeNet.XMLtrankey);
+          http_comp('<text> = ' + AuthorizeNet.XMLtext);
+          http_comp('<token> = ' + AuthorizeNet.XMLtoken);
+          http_comp('<token> is in the *LDA');
+      /endif
+      /endif
+
+          // Populate Return values
+          $ReturnCode = AuthorizeNet.XMLcode;
+          $ReturnID   = AuthorizeNet.XMLprofile;
+
+          // if everything looks good then store this Users Profile ID
+          If AuthorizeNet.XMLresult = 'Ok';
+             Chain ( $ParmType : 'USER' :  $ParmEmail ) CRDTABLE;
+             SetAuditValue();
+             If %Found(CRDTABLE);
+               crdvalue = AuthorizeNet.XMLprofile;
+               update CRDREC;
+             else;
+               crdtype  = $ParmType;
+               crdfunc  = 'USER';
+               crdvalue = AuthorizeNet.XMLprofile;
+               crdemail = $ParmEmail;
+               write CRDREC;
+             endif;
+          EndIf;
+
+          // --- program termination ---
+          return;
+      /end-free
+
+      /define CRD_Prototype
+      /include SRCWEB,CRDCPY

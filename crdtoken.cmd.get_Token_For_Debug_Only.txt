@@ -1,0 +1,8 @@
+/* ----------------------------------------------------------------- */
+/* TEST PROGRAM TO SETUP ENVIRONMENT AND DO THE AUTHORIZE.NET THING  */
+/* ----------------------------------------------------------------- */
+             CMD        PROMPT('Get Token from Authorize.net')
+
+             PARM       KWD(EMAIL) TYPE(*CHAR) LEN(32) +
+                          DFT(NLITTEN@NATLLOYDS.COM) PROMPT('do +
+                          something CLEVER')

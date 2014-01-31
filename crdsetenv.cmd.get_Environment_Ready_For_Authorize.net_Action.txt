@@ -1,0 +1,4 @@
+/* ------------------------------------------------------------------- */
+/* SET LIBRARY LIST AND GET ENVIRONMENT READY FOR AUTHORIZE.NET ACTION */
+/* ------------------------------------------------------------------- */
+             CMD        PROMPT('SET AUTHORIZE.NET ENVIRONMENT')

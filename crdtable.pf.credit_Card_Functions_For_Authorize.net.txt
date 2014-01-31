@@ -1,0 +1,19 @@
+      *--------------------------------------------------------------------------------------------*
+      * CRD CARD TYPES FOR AUTHORIZE.NET SOAP INFORMATION                                          *
+      *============================================================================================*
+      * TM ID  |   Date   | INITIALS | DESCRIPTION                                                 *
+      *============================================================================================*
+      *        | 01/01/14 | NJL      | Orginal Design                                              *
+      *============================================================================================*
+     A          R CRDREC
+     A            CRDTYPE        3A         COLHDG('TST OR PTD')
+     A            CRDFUNC       10A         COLHDG('FUNCTION OF RECORD')
+     A            CRDVALUE     512A         COLHDG('AUTHORIZE.NET FUNC')
+     A            CRDEMAIL     100A         COLHDG('EMAIL ADDRESS')
+     A            CRDTOKEN     256A         COLHDG('TOKEN')
+     A            AUDITPGM      10A         COLHDG('AUDIT PROGRAM')
+     A            AUDITDATE       L         COLHDG('AUDIT DATE')
+     A            AUDITTIME       T         COLHDG('AUDIT TIME')
+     A          K CRDTYPE
+     A          K CRDFUNC
+     A          K CRDEMAIL

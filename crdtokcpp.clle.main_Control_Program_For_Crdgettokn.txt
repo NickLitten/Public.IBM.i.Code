@@ -1,0 +1,15 @@
+/* Get Token from Authorize.net    */
+             PGM        PARM(&EMAIL)
+
+             DCL        VAR(&EMAIL) TYPE(*CHAR) LEN(32)
+             DCL        VAR(&LIBRARY) TYPE(*CHAR) LEN(10)
+
+             MONMSG     MSGID(CPF0000)
+             RTVOBJD    OBJ(*LIBL/CRDGETTOKN) OBJTYPE(*CMD) +
+                          RTNLIB(&LIBRARY)
+
+             CRDSETENV
+
+             CALLPRC    PRC(CRDGETTOK) PARM((&EMAIL))
+
+             ENDPGM

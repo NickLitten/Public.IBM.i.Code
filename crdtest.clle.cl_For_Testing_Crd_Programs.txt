@@ -1,0 +1,31 @@
+             PGM        PARM(&PGM)
+             DCL        VAR(&PGM) TYPE(*CHAR) LEN(10)
+             DCL        VAR(&PARM1) TYPE(*CHAR) LEN(256) VALUE('TST')
+             DCL        VAR(&PARM2) TYPE(*CHAR) LEN(256) +
+                          VALUE('nick@projex.com')
+             DCL        VAR(&PARM3) TYPE(*CHAR) LEN(256) VALUE('nick +
+                          is just some bloke you know')
+             DCL        VAR(&PARM4) TYPE(*CHAR) LEN(256) VALUE('nick +
+                          is just some bloke you know')
+
+             IF         COND(&PGM = 'CRDAUTTST') THEN(DO)
+             CALL       PGM(CRDAUTTST) PARM(&PARM1 &PARM2 &PARM3 &parm4)
+             ENDDO
+
+             IF         COND(&PGM = 'CRDCRTPRF') THEN(DO)
+             CALL       PGM(CRDCRTPRF) PARM(&PARM1 &PARM2 &PARM3 &parm4)
+             ENDDO
+
+             IF         COND(&PGM = 'CRDGETCPI') THEN(DO)
+             CALL       PGM(CRDGETCPI) PARM(&PARM1 &PARM2 &PARM3 &parm4)
+             ENDDO
+
+             IF         COND(&PGM = 'CRDGETHPP') THEN(DO)
+             CALL       PGM(CRDGETHPP) PARM(&PARM1 &PARM2 &PARM3 &parm4)
+             ENDDO
+
+             IF         COND(&PGM = 'CRDGETPRF') THEN(DO)
+             CALL       PGM(CRDGETPRF) PARM(&PARM1 &PARM2 &PARM3 &parm4)
+             ENDDO
+
+endpgm

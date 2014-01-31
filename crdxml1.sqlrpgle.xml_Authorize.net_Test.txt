@@ -1,0 +1,178 @@
+      // ----------------------------------------------------------------------
+      //
+      //  program name : CRDXML1
+      //  author       : nick.litten@projex.com
+      //  overview     : Generate XML for Authorize.net Token retrieval
+      // ----------------------------------------------------------------------
+      //
+      // Modification History
+      // 2013-08-28   NJL01   Created as part of CREDIT CARD project
+      // ----------------------------------------------------------------------
+     H Bnddir('QC2LE')
+     H AlwNull(*UsrCtl)
+
+      // Define Variables
+     D myIPC           s           1024A   inz(*BLANKS)
+     D myCtl           s           1024A   inz(*BLANKS)
+     D myXmlIn         s           4096A   inz(*BLANKS)
+     D myXmlOut        s           4096A   inz(*BLANKS)
+
+     D data            s          65000A   inz(*BLANKS)
+     D avar            s             32A   inz(*BLANKS)
+     D ain             s             32A   inz(*BLANKS)
+     D aout            s             32A   inz(*BLANKS)
+     D look1           s             32A   inz(*BLANKS)
+     D look2           s             32A   inz(*BLANKS)
+
+     D posi1           s               *   inz(*NULL)
+     D posi2           s               *   inz(*NULL)
+     D poso1           s               *   inz(*NULL)
+     D poso2           s               *   inz(*NULL)
+
+     D j               s             10i 0 inz(0)
+     D rn              s             10i 0 inz(0)
+
+     D was             C                   '</>'
+     D now             C                   ': :'
+
+     D rand            PR            10i 0 Extproc('rand')
+
+     D strstr          PR              *   ExtProc('strstr')
+     D  pVal1                          *   Value options(*string)
+     D  pVal2                          *   Value options(*string)
+
+     D strlen          PR            10I 0 ExtProc('strlen')
+     D  pVal                           *   Value options(*string)
+
+     D writeIFS        PR            20I 0 ExtProc('write')
+     D   fd                          10I 0 value
+     D   buf                           *   value
+     D   size                        10I 0 value
+
+     D  INCHARA        S              1a
+      // ----------------------------------------------------------------------
+      // main(): Control flow
+      // ----------------------------------------------------------------------
+     C     *Entry        PLIST
+     C                   PARM                    INCHARA
+      /free
+       Monitor;
+       // no output collected
+       data = *BLANKS;
+
+       // use XMLSERVICE
+       myIPC = '/tmp/nlitten';
+       // --or-- SBJJOB for both PHP and this module
+       myCtl = '*sbmjob';
+
+       // call XMLSERVICE/ZZCALL(...) using XML only
+       myXmlIn =
+         '<?xml version="1.0" encoding="ISO-8859-1"?>'         + x'0D'
+       + '<script>'                                            + x'0D'
+       + '<pgm name="ZZCALL" lib="XMLSERVICE">'                + x'0D'
+       + '<parm><data type="1a" v="1">Y</data></parm>'         + x'0D'
+       + '<parm><data type="1a" v="2">Z</data></parm>'         + x'0D'
+       + '<parm><data type="7p4" v="3">001.0001</data></parm>' + x'0D'
+       + '<parm><data type="12p2" v="4">0003.04</data></parm>' + x'0D'
+       + '<parm>'                                              + x'0D'
+       + ' <ds>'                                               + x'0D'
+       + '  <data type="1a" v="5">A</data>'                    + x'0D'
+       + '  <data type="1a" v="6">B</data>'                    + x'0D'
+       + '  <data type="7p4" v="7">005.0007</data>'            + x'0D'
+       + '  <data type="12p2" v="8">0000000006.08</data>'      + x'0D'
+       + ' </ds>'                                              + x'0D'
+       + '</parm>'                                             + x'0D'
+       + '</pgm>'                                              + x'0D'
+       + '</script>'                                           + x'00';
+
+       // XML will be returned
+       myXmlOut = *BLANKS;
+
+       // make call to XMLSERVICE provided stored procedure(s
+       // sizes from iPLUG4k to iPLUG15M (see crtsql xmlservice package)
+       Exec Sql call XMLSERVICE/iPLUG4K(:myIPC,:myCtl,:myXmlIn,:myXmlOut);
+
+       // -----
+       // send header + end (LFLF)
+       data = 'Content-type: text/html' + x'15' + x'15' + x'00';
+       rn = writeIFS(1:%addr(data):strlen(%addr(data)));
+
+       // -----
+       // send return data
+
+       // error
+       poso1 = %addr(myXmlOut);
+       look1  = '<report>' + x'00';
+       look2  = '</report>' + x'00';
+       poso1 = strstr(poso1:%addr(look1));
+       if poso1 <> *NULL;
+         data  = '<h3>RPG call error</h3>' + x'0D';
+         data  = %trim(data) + '<pre>' + x'0D';
+         poso2 = strstr(poso1:%addr(look2));
+         if poso2 <> *NULL;
+           data  = %trim(data) + %XLATE(was:now:%str(poso1:poso2-poso1));
+         endif;
+         data  = %trim(data) + '</pre>' + x'0D';
+
+       // non-error
+       else;
+         posi1 = %addr(myXmlIn);
+         poso1 = %addr(myXmlOut);
+         data  = '<h3>RPG call XMLSERVICE</h3>' + x'0D';
+         data  = %trim(data) + '<table border="1">' + x'0D';
+         data  = %trim(data) + '<th>Parameter name</th>' + x'0D';
+         data  = %trim(data) + '<th>Input value</th>' + x'0D';
+         data  = %trim(data) + '<th>Output value</th>' + x'0D';
+         for j = 1 to 8;
+           // variable to scan
+           look1  = 'v="' + %char(j) +'">' + x'00';
+           look2  = '</data>' + x'00';
+           // input value
+           posi1 = strstr(posi1:%addr(look1));
+           posi1 = posi1 + strlen(%addr(look1));
+           posi2 = strstr(posi1:%addr(look2));
+           ain = %str(posi1:posi2-posi1);
+           // output value
+           poso1 = strstr(poso1:%addr(look1));
+           poso1 = poso1 + strlen(%addr(look1));
+           poso2 = strstr(poso1:%addr(look2));
+           aout = %str(poso1:poso2-poso1);
+           // var label
+           select;
+           when j=1;
+             avar = 'INCHARA';
+           when j=2;
+             avar = 'INCHARB';
+           when j=3;
+             avar = 'INDEC1';
+           when j=4;
+             avar = 'INDEC2';
+           when j=5;
+             avar = 'INDS1.DSCHARA';
+           when j=6;
+             avar = 'INDS1.DSCHARB';
+           when j=7;
+             avar = 'INDS1.DSDEC1';
+           when j=8;
+             avar = 'INDS1.DSDEC2';
+           // other?
+           other;
+           endsl;
+           // add row
+           data  = %trim(data)
+               + '<tr><td>' + %trim(avar)
+               + '</td><td>' + %trim(ain)
+               + '</td><td>' + %trim(aout)
+               + '</td></tr>' + x'0D';
+         endfor;
+         // end of table
+         data  = %trim(data) + '</table>' + x'00';
+       endif;
+
+       rn = writeIFS(1:%addr(data):strlen(%addr(data)));
+
+       On-error;
+       Endmon;
+
+       return;
+      /end-free
